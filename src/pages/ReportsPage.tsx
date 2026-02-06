@@ -89,7 +89,7 @@ const ReportsPage = () => {
       const API_URL = import.meta.env.VITE_BACKEND_URL;
       const token = localStorage.getItem('token');
 
-      const response = await fetch(`${API_URL}/export/excel?${params.toString()}`, {
+      const response = await fetch(`${API_URL}/api/export/excel?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

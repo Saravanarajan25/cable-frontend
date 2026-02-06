@@ -6,7 +6,10 @@ const getApiUrl = () => {
         console.error('[API Client] VITE_BACKEND_URL is missing! API calls will fail.');
     }
 
-    const finalUrl = envUrl;
+    // Remove trailing slash if present
+    const cleanUrl = envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
+    // Append /api
+    const finalUrl = `${cleanUrl}/api`;
 
     // Log for debugging (only in development)
     if (import.meta.env.DEV) {
@@ -113,7 +116,7 @@ class ApiClient {
             // Enhanced error logging
             if (error.message === 'Failed to fetch') {
                 console.error(`[API] Network error - Cannot reach ${url}`);
-                console.error('[API] Check if backend is running and VITE_BACKEND_URL is correct');
+                console.error('[API] Check if backend is running and VITE_BACKEND_URL is correct (should include protocol and domain, e.g., http://localhost:3001)');
                 throw new Error('Cannot connect to server. Please ensure the backend is running.');
             }
             console.error(`[API] Error for ${url}:`, error.message);
