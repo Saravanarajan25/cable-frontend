@@ -28,21 +28,24 @@ export const usePayments = () => {
 
   const getPaymentStatus = useCallback(async (homeId: number, month: number, year: number): Promise<Payment | null> => {
     try {
-      // Payment status is included in the home fetch
-      const home = await apiClient.get(`/homes/${homeId}`);
-      if (home && home.payment_status) {
-        return {
-          id: '',
-          home_id: homeId,
-          month,
-          year,
-          status: home.payment_status,
-          paid_date: home.paid_date,
-          created_at: '',
-          updated_at: ''
-        };
-      }
-      return null;
+      const params = new URLSearchParams({
+        month: month.toString(),
+        year: year.toString(),
+      });
+      const data = await apiClient.get(`/payments/status/${homeId}?${params.toString()}`);
+
+      // Backend returns either the payment record or { status: 'unpaid', ... }
+      // Map it to our Payment interface
+      return {
+        id: data.id || '',
+        home_id: homeId,
+        month: data.month || month,
+        year: data.year || year,
+        status: data.status,
+        paid_date: data.paid_date,
+        created_at: data.created_at || '',
+        updated_at: data.updated_at || ''
+      };
     } catch (error: any) {
       console.error('Error fetching payment status:', error);
       return null;
@@ -138,6 +141,8 @@ export const usePayments = () => {
         totalHomes: data.total || 0,
         paidCount: data.paid || 0,
         unpaidCount: data.unpaid || 0,
+        collectedAmount: data.total_collected || 0,
+        pendingAmount: data.total_pending || 0,
       };
     } catch (error: any) {
       console.error('Error fetching stats:', error);
@@ -145,6 +150,8 @@ export const usePayments = () => {
         totalHomes: 0,
         paidCount: 0,
         unpaidCount: 0,
+        collectedAmount: 0,
+        pendingAmount: 0,
       };
     }
   }, []);

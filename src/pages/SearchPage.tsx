@@ -18,16 +18,26 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 const SearchPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const initialHomeId = searchParams.get('homeId') || '';
+
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1;
+  const currentYear = currentDate.getFullYear();
 
   const [searchId, setSearchId] = useState(initialHomeId);
   const [searchedHome, setSearchedHome] = useState<Home | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<Payment | null>(null);
   const [searching, setSearching] = useState(false);
   const [notFound, setNotFound] = useState(false);
+
+  // Month/Year Selection State
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
 
   // Edit State
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -44,16 +54,45 @@ const SearchPage = () => {
   const { searchHomeById, updateHome, deleteHome, loading: homeLoading } = useHomes();
   const { getPaymentStatus, markAsPaid, markAsUnpaid, loading: paymentLoading } = usePayments();
 
-  const currentDate = new Date();
-  const currentMonth = currentDate.getMonth() + 1;
-  const currentYear = currentDate.getFullYear();
-  const monthName = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+  // Create formatted month name for the HomeCard display (dynamic based on selection)
+  // Assuming monthName logic was just for display.
+  // We need to construct a date object or just array lookup for the label if HomeCard needs a string.
+  // HomeCard prop is `currentMonth`.
+  const months = [
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' },
+  ];
+
+  const years = Array.from({ length: 6 }, (_, i) => currentYear - 1 + i); // Last year to +4 years
+
+  const displayMonthName = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' });
 
   useEffect(() => {
     if (initialHomeId) {
       handleSearch(initialHomeId);
     }
   }, []);
+
+  // Refetch payment status when month/year changes if a home is already loaded
+  useEffect(() => {
+    const fetchStatus = async () => {
+      if (searchedHome) {
+        const payment = await getPaymentStatus(searchedHome.home_id, selectedMonth, selectedYear);
+        setPaymentStatus(payment);
+      }
+    };
+    fetchStatus();
+  }, [selectedMonth, selectedYear, searchedHome?.home_id]); // Depend on ID to avoid loop if object ref changes but ID matches
 
   const handleSearch = async (id?: string) => {
     const homeId = parseInt(id || searchId);
@@ -64,12 +103,15 @@ const SearchPage = () => {
     setSearchedHome(null);
     setPaymentStatus(null);
 
+    // Reset selection to current month on new search? 
+    // Maybe keep user selection if they are doing bulk entry for Jan?
+    // Let's keep the selection. It's more useful for batch work.
+
     const home = await searchHomeById(homeId);
 
     if (home) {
       setSearchedHome(home);
-      const payment = await getPaymentStatus(home.home_id, currentMonth, currentYear);
-      setPaymentStatus(payment);
+      // Payment status fetch triggered by useEffect now
     } else {
       setNotFound(true);
     }
@@ -79,7 +121,7 @@ const SearchPage = () => {
 
   const handleMarkAsPaid = async () => {
     if (!searchedHome) return;
-    const result = await markAsPaid(searchedHome.home_id, currentMonth, currentYear);
+    const result = await markAsPaid(searchedHome.home_id, selectedMonth, selectedYear);
     if (result) {
       setPaymentStatus(result as Payment);
     }
@@ -87,7 +129,7 @@ const SearchPage = () => {
 
   const handleMarkAsUnpaid = async () => {
     if (!searchedHome) return;
-    const result = await markAsUnpaid(searchedHome.home_id, currentMonth, currentYear);
+    const result = await markAsUnpaid(searchedHome.home_id, selectedMonth, selectedYear);
     if (result) {
       setPaymentStatus(result as Payment);
     }
@@ -170,6 +212,40 @@ const SearchPage = () => {
           </CardContent>
         </Card>
 
+        {/* Month/Year Selection Area */}
+        {searchedHome && !searching && (
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+                <SelectTrigger className="h-12 bg-card">
+                  <SelectValue placeholder="Select Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((m) => (
+                    <SelectItem key={m.value} value={m.value.toString()}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-1/3">
+              <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+                <SelectTrigger className="h-12 bg-card">
+                  <SelectValue placeholder="Select Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((y) => (
+                    <SelectItem key={y} value={y.toString()}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+
         {searching && (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -202,7 +278,7 @@ const SearchPage = () => {
             onEdit={handleEditClick}
             onDelete={() => setIsDeleteDialogOpen(true)}
             loading={paymentLoading || homeLoading}
-            currentMonth={monthName}
+            currentMonth={displayMonthName}
           />
         )}
 

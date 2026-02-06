@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { 
-  Tv, 
-  Home, 
-  Search, 
-  Calendar, 
-  LogOut, 
-  Menu, 
+import {
+  Tv,
+  Home,
+  Search,
+  Calendar,
+  LogOut,
+  Menu,
   X,
-  UserPlus
+  UserPlus,
+  LogIn
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -61,14 +62,26 @@ const Layout = ({ children }: LayoutProps) => {
                   </Button>
                 </Link>
               ))}
-              <Button
-                variant="ghost"
-                onClick={handleSignOut}
-                className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
+              {user ? (
+                <Button
+                  variant="ghost"
+                  onClick={handleSignOut}
+                  className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
+              ) : (
+                <Link to="/auth">
+                  <Button
+                    variant="ghost"
+                    className="text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Sign In
+                  </Button>
+                </Link>
+              )}
             </nav>
 
             {/* Mobile Menu Button */}
@@ -102,14 +115,26 @@ const Layout = ({ children }: LayoutProps) => {
                   </Button>
                 </Link>
               ))}
-              <Button
-                variant="ghost"
-                onClick={handleSignOut}
-                className="w-full justify-start text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
+              {user ? (
+                <Button
+                  variant="ghost"
+                  onClick={handleSignOut}
+                  className="w-full justify-start text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
+              ) : (
+                <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/10"
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Sign In
+                  </Button>
+                </Link>
+              )}
             </div>
           </nav>
         )}

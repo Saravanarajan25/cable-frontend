@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,7 +64,10 @@ const Auth = () => {
           title: 'Welcome Back!',
           description: 'You have successfully signed in.',
         });
-        navigate('/');
+        const state = location.state as any;
+        const from = state?.from?.pathname || '/';
+        const search = state?.from?.search || '';
+        navigate(from + search, { replace: true });
       }
     } finally {
       setLoading(false);
@@ -121,7 +125,7 @@ const Auth = () => {
               )}
             </Button>
             <p className="text-sm text-center text-muted-foreground">
-              
+
             </p>
           </CardFooter>
         </form>

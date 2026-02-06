@@ -13,19 +13,19 @@ const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchId, setSearchId] = useState('');
-  const [stats, setStats] = useState({ totalHomes: 0, paidCount: 0, unpaidCount: 0 });
+  const [stats, setStats] = useState({
+    totalHomes: 0,
+    paidCount: 0,
+    unpaidCount: 0,
+    collectedAmount: 0,
+    pendingAmount: 0
+  });
   const [loadingStats, setLoadingStats] = useState(true);
   const { getMonthlyStats } = usePayments();
 
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth() + 1;
   const currentYear = currentDate.getFullYear();
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -35,13 +35,11 @@ const Index = () => {
       setLoadingStats(false);
     };
 
-    if (user) {
-      fetchStats();
-    }
+    fetchStats();
 
     // Refresh stats when page becomes visible (user returns to dashboard)
     const handleVisibilityChange = () => {
-      if (!document.hidden && user) {
+      if (!document.hidden) {
         fetchStats();
       }
     };
@@ -68,9 +66,15 @@ const Index = () => {
     );
   }
 
-  if (!user) return null;
-
   const monthName = currentDate.toLocaleString('default', { month: 'long' });
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
 
   return (
     <Layout>
@@ -83,6 +87,7 @@ const Index = () => {
           </p>
         </div>
 
+        {/* Stats Cards */}
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatCard

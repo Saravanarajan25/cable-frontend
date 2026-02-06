@@ -33,6 +33,8 @@ const ReportsPage = () => {
   const [homes, setHomes] = useState<HomeWithPayment[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const { getPaymentsByMonthYear } = usePayments();
 
   const months = [
@@ -111,11 +113,26 @@ const ReportsPage = () => {
     }
   };
 
+  // Filter homes based on search query
+  const filteredHomes = homes.filter(home => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      home.customer_name.toLowerCase().includes(query) ||
+      home.home_id.toString().includes(query) ||
+      home.phone.includes(query)
+    );
+  });
+
   const paidCount = homes.filter(h => h.payment_status === 'paid').length;
   const unpaidCount = homes.filter(h => h.payment_status === 'unpaid').length;
-  const totalAmount = homes.reduce((sum, h) => sum + h.monthly_amount, 0);
+  // const totalAmount = homes.reduce((sum, h) => sum + h.monthly_amount, 0); // Not used in display
   const collectedAmount = homes
     .filter(h => h.payment_status === 'paid')
+    .reduce((sum, h) => sum + h.monthly_amount, 0);
+
+  const pendingAmount = homes
+    .filter(h => h.payment_status === 'unpaid')
     .reduce((sum, h) => sum + h.monthly_amount, 0);
 
   return (
@@ -129,7 +146,7 @@ const ReportsPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Month</label>
                 <Select value={month.toString()} onValueChange={(v) => setMonth(parseInt(v))}>
@@ -195,12 +212,24 @@ const ReportsPage = () => {
                   onChange={(e) => setToDate(e.target.value)}
                 />
               </div>
+
+              {/* New Search Bar */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Search</label>
+                <input
+                  type="text"
+                  placeholder="Name, ID, Phone..."
+                  className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="bg-primary/5 border-primary/20">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Total Homes</p>
@@ -225,6 +254,12 @@ const ReportsPage = () => {
               <p className="text-2xl font-bold">₹{collectedAmount.toLocaleString()}</p>
             </CardContent>
           </Card>
+          <Card className="bg-primary/10 border-primary/20">
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">Pending Amount</p>
+              <p className="text-2xl font-bold">₹{pendingAmount.toLocaleString()}</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Export Button */}
@@ -242,7 +277,7 @@ const ReportsPage = () => {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
-            ) : homes.length === 0 ? (
+            ) : filteredHomes.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 No homes found for the selected criteria.
               </div>
@@ -260,7 +295,7 @@ const ReportsPage = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {homes.map((home) => (
+                    {filteredHomes.map((home) => (
                       <TableRow key={home.id}>
                         <TableCell className="font-medium">{home.home_id}</TableCell>
                         <TableCell>{home.customer_name}</TableCell>
