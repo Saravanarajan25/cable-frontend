@@ -1,13 +1,16 @@
 // API Client for CablePay Backend
 const getApiUrl = () => {
-    const envUrl = (import.meta as any).env?.VITE_API_URL;
-    const fallbackUrl = 'http://localhost:3001/api';
+    const envUrl = import.meta.env.VITE_BACKEND_URL;
 
-    const finalUrl = envUrl || fallbackUrl;
+    if (!envUrl) {
+        console.error('[API Client] VITE_BACKEND_URL is missing! API calls will fail.');
+    }
+
+    const finalUrl = envUrl;
 
     // Log for debugging (only in development)
     if (import.meta.env.DEV) {
-        console.log('[API Client] Environment VITE_API_URL:', envUrl);
+        console.log('[API Client] Environment VITE_BACKEND_URL:', envUrl);
         console.log('[API Client] Using API URL:', finalUrl);
     }
 
@@ -110,7 +113,7 @@ class ApiClient {
             // Enhanced error logging
             if (error.message === 'Failed to fetch') {
                 console.error(`[API] Network error - Cannot reach ${url}`);
-                console.error('[API] Check if backend is running on http://localhost:3001');
+                console.error('[API] Check if backend is running and VITE_BACKEND_URL is correct');
                 throw new Error('Cannot connect to server. Please ensure the backend is running.');
             }
             console.error(`[API] Error for ${url}:`, error.message);

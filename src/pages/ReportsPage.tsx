@@ -86,7 +86,7 @@ const ReportsPage = () => {
         status: status,
       });
 
-      const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+      const API_URL = import.meta.env.VITE_BACKEND_URL;
       const token = localStorage.getItem('token');
 
       const response = await fetch(`${API_URL}/export/excel?${params.toString()}`, {
