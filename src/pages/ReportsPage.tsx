@@ -157,16 +157,28 @@ const ReportsPage = () => {
     );
   });
 
-  const paidCount = homes.filter(h => h.payment_status === 'paid').length;
-  const unpaidCount = homes.filter(h => h.payment_status === 'unpaid').length;
-  // const totalAmount = homes.reduce((sum, h) => sum + h.monthly_amount, 0); // Not used in display
-  const collectedAmount = homes
-    .filter(h => h.payment_status === 'paid')
-    .reduce((sum, h) => sum + h.monthly_amount, 0);
+  // Calculate summary statistics based on filtered data
+  const summaryStats = useMemo(() => {
+    const totalHomes = filteredHomes.length;
+    const paidCount = filteredHomes.filter(h => h.payment_status === 'paid').length;
+    const unpaidCount = filteredHomes.filter(h => h.payment_status === 'unpaid').length;
 
-  const pendingAmount = homes
-    .filter(h => h.payment_status === 'unpaid')
-    .reduce((sum, h) => sum + h.monthly_amount, 0);
+    const collectedAmount = filteredHomes
+      .filter(h => h.payment_status === 'paid')
+      .reduce((sum, h) => sum + h.monthly_amount, 0);
+
+    const pendingAmount = filteredHomes
+      .filter(h => h.payment_status === 'unpaid')
+      .reduce((sum, h) => sum + h.monthly_amount, 0);
+
+    return {
+      totalHomes,
+      paidCount,
+      unpaidCount,
+      collectedAmount,
+      pendingAmount
+    };
+  }, [filteredHomes]);
 
   return (
     <Layout>
@@ -266,31 +278,31 @@ const ReportsPage = () => {
           <Card className="bg-primary/5 border-primary/20">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Total Homes</p>
-              <p className="text-2xl font-bold">{homes.length}</p>
+              <p className="text-2xl font-bold">{summaryStats.totalHomes}</p>
             </CardContent>
           </Card>
           <Card className="bg-success/10 border-success/20">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Paid</p>
-              <p className="text-2xl font-bold text-success">{paidCount}</p>
+              <p className="text-2xl font-bold text-success">{summaryStats.paidCount}</p>
             </CardContent>
           </Card>
           <Card className="bg-destructive/10 border-destructive/20">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Unpaid</p>
-              <p className="text-2xl font-bold text-destructive">{unpaidCount}</p>
+              <p className="text-2xl font-bold text-destructive">{summaryStats.unpaidCount}</p>
             </CardContent>
           </Card>
           <Card className="bg-warning/10 border-warning/20">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Collected</p>
-              <p className="text-2xl font-bold">₹{collectedAmount.toLocaleString()}</p>
+              <p className="text-2xl font-bold">₹{summaryStats.collectedAmount.toLocaleString()}</p>
             </CardContent>
           </Card>
           <Card className="bg-primary/10 border-primary/20">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Pending Amount</p>
-              <p className="text-2xl font-bold">₹{pendingAmount.toLocaleString()}</p>
+              <p className="text-2xl font-bold">₹{summaryStats.pendingAmount.toLocaleString()}</p>
             </CardContent>
           </Card>
         </div>
