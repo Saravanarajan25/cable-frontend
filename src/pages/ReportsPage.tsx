@@ -76,27 +76,55 @@ const ReportsPage = () => {
   };
 
   const exportToExcel = async () => {
-    const monthName = months.find(m => m.value === month)?.label || '';
-    const fileName = `Cable_Payments_${monthName}_${year}_${status.toUpperCase()}.xlsx`;
-
     try {
+      setLoading(true);
+      const monthName = months.find(m => m.value === month)?.label || '';
+      // Fallback filename if header is missing
+      let fileName = `Cable_Payments_${monthName}_${year}_${status.toUpperCase()}.xlsx`;
+
       const params = new URLSearchParams({
         month: month.toString(),
         year: year.toString(),
         status: status,
       });
 
-      const API_URL = import.meta.env.VITE_BACKEND_URL;
-      const token = localStorage.getItem('token');
+      // Robust URL construction
+      const baseUrl = import.meta.env.VITE_BACKEND_URL?.replace(/\/+$/, '') || '';
+      const exportUrl = `${baseUrl}/api/export/excel?${params.toString()}`;
 
-      const response = await fetch(`${API_URL}/api/export/excel?${params.toString()}`, {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('You are not logged in. Please login to export.');
+        window.location.href = '/auth';
+        return;
+      }
+
+      const response = await fetch(exportUrl, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
       if (!response.ok) {
-        throw new Error('Export failed');
+        if (response.status === 401) {
+          alert('Session expired. Please login again.');
+          window.location.href = '/auth';
+          return;
+        }
+        if (response.status === 404) {
+          throw new Error('Export endpoint not found. Check VITE_BACKEND_URL.');
+        }
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+
+      // Try to get filename from header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+?)"/);
+        if (match && match[1]) {
+          fileName = match[1];
+        }
       }
 
       const blob = await response.blob();
@@ -106,10 +134,15 @@ const ReportsPage = () => {
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
+
+      // Cleanup
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Export error:', error);
+      alert(`Export Failed: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
