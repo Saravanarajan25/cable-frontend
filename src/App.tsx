@@ -11,54 +11,57 @@ import SearchPage from "./pages/SearchPage";
 import ReportsPage from "./pages/ReportsPage";
 import AddHomePage from "./pages/AddHomePage";
 import NotFound from "./pages/NotFound";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
+    <ErrorBoundary>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
               <Route
-              path="/"
-              element={
-                <Index />
-              }
-            />
-            <Route path="/auth" element={<Auth />} />
-            <Route
-              path="/search"
-              element={
-                <ProtectedRoute>
-                  <SearchPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <ReportsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/add-home"
-              element={
-                <ProtectedRoute>
-                  <AddHomePage />
-                </ProtectedRoute>
-              }
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+                path="/"
+                element={
+                  <Index />
+                }
+              />
+              <Route path="/auth" element={<Auth />} />
+              <Route
+                path="/search"
+                element={
+                  <ProtectedRoute>
+                    <SearchPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <ProtectedRoute>
+                    <ReportsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/add-home"
+                element={
+                  <ProtectedRoute>
+                    <AddHomePage />
+                  </ProtectedRoute>
+                }
+              />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   </QueryClientProvider>
 );
 

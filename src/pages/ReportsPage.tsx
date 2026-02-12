@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import PaymentStatusBadge from '@/components/PaymentStatusBadge';
@@ -55,16 +55,33 @@ const ReportsPage = () => {
   const years = Array.from({ length: 10 }, (_, i) => currentDate.getFullYear() - 5 + i);
 
   useEffect(() => {
-    fetchData();
-  }, [month, year, status, fromDate, toDate]);
+    let isMounted = true;
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // FETCH ALL DATA: We pass undefined for status to intentionally fetch ALL records.
+        // This bypasses a backend bug where filtering by 'unpaid' causes paid records to disappear 
+        // and default to 'unpaid'. We rely on strict client-side filtering instead.
+        const data = await getPaymentsByMonthYear(month, year, undefined, fromDate, toDate);
+        if (isMounted) {
+          setHomes(data as HomeWithPayment[] || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch reports:", error);
+        // Optional: toast error here
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
 
-  const fetchData = async () => {
-    setLoading(true);
-    const statusFilter = status === 'all' ? undefined : status;
-    const data = await getPaymentsByMonthYear(month, year, statusFilter, fromDate, toDate);
-    setHomes(data as HomeWithPayment[]);
-    setLoading(false);
-  };
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [month, year, status, fromDate, toDate, getPaymentsByMonthYear]);
 
   const handleStatusChange = (value: string) => {
     setStatus(value as 'paid' | 'unpaid' | 'all');
@@ -146,39 +163,44 @@ const ReportsPage = () => {
     }
   };
 
-  // Filter homes based on search query
-  const filteredHomes = homes.filter(home => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      home.customer_name.toLowerCase().includes(query) ||
-      home.home_id.toString().includes(query) ||
-      home.phone.includes(query)
-    );
-  });
+  // Filter homes based on status and search query
+  const filteredHomes = useMemo(() => {
+    return (homes || []).filter(home => {
+      if (!home) return false;
 
-  // Calculate summary statistics based on filtered data
+      // Filter by status (strict check, even if backend already filters)
+      if (status === 'paid' && home.payment_status !== 'paid') return false;
+      if (status === 'unpaid' && home.payment_status !== 'unpaid') return false;
+
+      // Filter by search query
+      if (!searchQuery) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        (home.customer_name || '').toLowerCase().includes(query) ||
+        (home.home_id || '').toString().includes(query) ||
+        (home.phone || '').includes(query)
+      );
+    });
+  }, [homes, status, searchQuery]);
+
+  // Calculate summary stats based on FILTERED data
   const summaryStats = useMemo(() => {
-    const totalHomes = filteredHomes.length;
-    const paidCount = filteredHomes.filter(h => h.payment_status === 'paid').length;
-    const unpaidCount = filteredHomes.filter(h => h.payment_status === 'unpaid').length;
+    const total = filteredHomes.length;
+    const paid = filteredHomes.filter(h => h.payment_status === 'paid').length;
+    const unpaid = filteredHomes.filter(h => h.payment_status === 'unpaid').length;
 
-    const collectedAmount = filteredHomes
+    const collected = filteredHomes
       .filter(h => h.payment_status === 'paid')
       .reduce((sum, h) => sum + h.monthly_amount, 0);
 
-    const pendingAmount = filteredHomes
+    const pending = filteredHomes
       .filter(h => h.payment_status === 'unpaid')
       .reduce((sum, h) => sum + h.monthly_amount, 0);
 
-    return {
-      totalHomes,
-      paidCount,
-      unpaidCount,
-      collectedAmount,
-      pendingAmount
-    };
+    return { total, paid, unpaid, collected, pending };
   }, [filteredHomes]);
+
+  const { total: totalHomes, paid: paidCount, unpaid: unpaidCount, collected: collectedAmount, pending: pendingAmount } = summaryStats;
 
   return (
     <Layout>
@@ -278,31 +300,31 @@ const ReportsPage = () => {
           <Card className="bg-primary/5 border-primary/20">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Total Homes</p>
-              <p className="text-2xl font-bold">{summaryStats.totalHomes}</p>
+              <p className="text-2xl font-bold">{totalHomes}</p>
             </CardContent>
           </Card>
           <Card className="bg-success/10 border-success/20">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Paid</p>
-              <p className="text-2xl font-bold text-success">{summaryStats.paidCount}</p>
+              <p className="text-2xl font-bold text-success">{paidCount}</p>
             </CardContent>
           </Card>
           <Card className="bg-destructive/10 border-destructive/20">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Unpaid</p>
-              <p className="text-2xl font-bold text-destructive">{summaryStats.unpaidCount}</p>
+              <p className="text-2xl font-bold text-destructive">{unpaidCount}</p>
             </CardContent>
           </Card>
           <Card className="bg-warning/10 border-warning/20">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Collected</p>
-              <p className="text-2xl font-bold">₹{summaryStats.collectedAmount.toLocaleString()}</p>
+              <p className="text-2xl font-bold">₹{collectedAmount.toLocaleString()}</p>
             </CardContent>
           </Card>
           <Card className="bg-primary/10 border-primary/20">
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Pending Amount</p>
-              <p className="text-2xl font-bold">₹{summaryStats.pendingAmount.toLocaleString()}</p>
+              <p className="text-2xl font-bold">₹{pendingAmount.toLocaleString()}</p>
             </CardContent>
           </Card>
         </div>
